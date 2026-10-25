@@ -1,0 +1,17 @@
+name: Legacy J7 Prime ROM Builder
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legacy:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Redirect
+        run: |
+          echo "The old GitHub-hosted build is intentionally disabled."
+          echo "Use: Build J7 Prime ROM - Strong Self-Hosted Runner"
+          echo "The new workflow accepts any online Linux x64 self-hosted runner with sufficient resources."
