@@ -1,0 +1,84 @@
+name: Build J7 Prime ROM on Crave
+
+on:
+  workflow_dispatch:
+    inputs:
+      crave_project_id:
+        description: "Crave base project ID (confirm it in your Crave account)"
+        required: true
+        type: string
+      device_manifest_url:
+        description: "Git repository URL containing the on7xelte device/kernel/vendor local manifest"
+        required: true
+        type: string
+      device_manifest_branch:
+        description: "Branch of the device local-manifest repository"
+        required: true
+        default: "lineage-19.1"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Submit J7 Prime build to Crave
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check Crave credentials
+        env:
+          CRAVE_USERNAME: ${{ secrets.CRAVE_USERNAME }}
+          CRAVE_TOKEN: ${{ secrets.CRAVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$CRAVE_USERNAME" || { echo "::error::Missing repository secret CRAVE_USERNAME"; exit 1; }
+          test -n "$CRAVE_TOKEN" || { echo "::error::Missing repository secret CRAVE_TOKEN"; exit 1; }
+
+      - name: Install Crave CLI and configure credentials
+        env:
+          CRAVE_USERNAME: ${{ secrets.CRAVE_USERNAME }}
+          CRAVE_TOKEN: ${{ secrets.CRAVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/accupara/crave/master/get_crave.sh | bash -s --
+          mkdir -p "$HOME/bin"
+          install -m 0755 crave "$HOME/bin/crave"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          if ! command -v envsubst >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y gettext-base
+          fi
+          envsubst < crave.conf.sample > "$HOME/crave.conf"
+          chmod 600 "$HOME/crave.conf"
+          "$HOME/bin/crave" version
+
+      - name: Submit ROM build
+        env:
+          CRAVE_PROJECT_ID: ${{ inputs.crave_project_id }}
+          DEVICE_MANIFEST_URL: ${{ inputs.device_manifest_url }}
+          DEVICE_MANIFEST_BRANCH: ${{ inputs.device_manifest_branch }}
+          GH_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          [[ "$CRAVE_PROJECT_ID" =~ ^[0-9]+$ ]] || { echo "::error::Crave project ID must be numeric."; exit 1; }
+          [[ "$DEVICE_MANIFEST_URL" == https://* ]] || { echo "::error::Device manifest URL must start with https://"; exit 1; }
+
+          BUILD_COMMAND="set -euo pipefail
+          mkdir -p /tmp/src/android
+          cd /tmp/src/android
+          repo init -u https://github.com/LineageOS/android.git -b lineage-19.1
+          mkdir -p .repo/local_manifests
+          curl -fsSL \"https://raw.githubusercontent.com/${GH_REPOSITORY}/main/rom/crave/local_manifests/mindthegapps-12.xml\" -o .repo/local_manifests/mindthegapps-12.xml
+          git clone --depth=1 -b \"${DEVICE_MANIFEST_BRANCH}\" \"${DEVICE_MANIFEST_URL}\" /tmp/device-manifest
+          find /tmp/device-manifest -maxdepth 2 -type f -name '*.xml' -exec cp {} .repo/local_manifests/ \\;
+          repo sync -c --no-clone-bundle --no-tags -j\$(nproc --all)
+          source build/envsetup.sh
+          lunch lineage_on7xelte-userdebug
+          mka bacon
+          "
+
+          crave run --projectID "$CRAVE_PROJECT_ID" --no-patch -- "$BUILD_COMMAND"
