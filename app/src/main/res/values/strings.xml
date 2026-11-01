@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DownLS10</string>
+    <string name="hello_world">Hello, World!</string>
+
+    <!-- System App Updater -->
+    <string name="system_app_updater_title">System App Updater</string>
+    <string name="root_access">Root Access</string>
+    <string name="checking_root">Checking root access…</string>
+    <string name="recheck">Recheck</string>
+    <string name="root_access_granted">Root Access Granted</string>
+    <string name="root_access_granted_desc">Device is rooted. You can manage system apps.</string>
+    <string name="root_access_required">Root Access Required</string>
+    <string name="root_access_required_desc">This feature requires root (Magisk/KernelSU). Please grant root access to use System App Updater.</string>
+    <string name="root_required_title">Root Required</string>
+    <string name="root_required_desc">Please root your device and grant root permission to this app to manage system applications.</string>
+
+    <string name="search_apps">Search apps…</string>
+    <string name="all_apps">All</string>
+    <string name="system_apps_only">System Only</string>
+    <string name="updated_system_apps">Updated Only</string>
+    <string name="needs_update">Needs Update</string>
+    <string name="available_updates">Available Updates</string>
+    <string name="checking_updates">Checking for updates…</string>
+    <string name="no_updates_available">No updates available</string>
+    <string name="updates_found">%d updates available</string>
+    <string name="downloading_apk">Downloading %s…</string>
+    <string name="download_failed">Download failed: %s</string>
+    <string name="download_complete">Download complete</string>
+    <string name="install_from_download">Install downloaded APK?</string>
+    <string name="apps_count">Apps</string>
+    <string name="apps_count_format">%d apps</string>
+    <string name="refresh">Refresh</string>
+    <string name="pick_apk_file">Pick APK</string>
+    <string name="scan_apk_files">Scan APK Files</string>
+    <string name="scanning">Scanning…</string>
+    <string name="scanning_apk_files">Scanning storage for APK files…</string>
+    <string name="select_apk_to_install">Select APK to Install</string>
+    <string name="no_apk_files_found">No APK files found in storage</string>
+    <string name="no_apps_found">No apps found</string>
+    <string name="no_apps_found_desc">Try changing the filter or search term</string>
+    <string name="empty_state_icon_desc">Empty state illustration</string>
+    <string name="app_icon_desc">App icon</string>
+    <string name="root_status_icon_desc">Root status indicator</string>
+
+    <string name="install_update">Install / Update</string>
+    <string name="disable">Disable</string>
+    <string name="enable">Enable</string>
+    <string name="uninstall">Uninstall</string>
+    <string name="installing">Installing…</string>
+    <string name="installing_apk">Installing %s…</string>
+    <string name="install_apk_confirm">Install/update \"%s\" as system app?</string>
+    <string name="current_version">Current: %s (%d)</string>
+    <string name="new_version">New: %s (%d)</string>
+    <string name="version_newer">New version is newer ✓</string>
+    <string name="version_older_or_same">⚠ New version is older or same</string>
+    <string name="install_new_app">Install New App</string>
+    <string name="install_new_app_desc">Install \"%s\" (v%s, code %d) as a new system app?</string>
+    <string name="update_available">Update Available: %s</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="retry">Retry</string>
+    <string name="install">Install</string>
+    <string name="close">Close</string>
+    <string name="about">About</string>
+    <string name="about_system_app_updater">System App Updater allows you to view, update, enable/disable system applications on rooted Android devices.\n\nRequires Root (Magisk/KernelSU).\n\nUse at your own risk. Modifying system apps can cause instability.</string>
+    <string name="show_user_apps">Show User Apps</string>
+    <string name="permission_denied">Permission denied</string>
+    <string name="invalid_apk_file">Invalid APK file</string>
+    <string name="select_valid_apk">Please select a valid APK file</string>
+    <string name="error_reading_apk">Error reading APK file</string>
+</resources>
