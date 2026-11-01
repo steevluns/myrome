@@ -1,4 +1,4 @@
-name: Build DownLS10 APK
+name: Build APK
 # Manual builds only. Commits and source changes will not start a build automatically.
 
 on:
