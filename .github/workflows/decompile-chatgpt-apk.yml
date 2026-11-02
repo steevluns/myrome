@@ -13,7 +13,7 @@ permissions:
 jobs:
   decompile:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,6 +28,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           curl --fail --location --retry 3 \
             -H "Accept: application/octet-stream" \
             -H "Authorization: Bearer ${GH_TOKEN}" \
@@ -40,6 +41,7 @@ jobs:
 
       - name: Download JADX
         run: |
+          set -euo pipefail
           JADX_URL="$(curl -fsSL https://api.github.com/repos/skylot/jadx/releases/latest | jq -r '.assets[] | select(.name | test("^jadx-[0-9.]+\\.zip$")) | .browser_download_url' | head -n 1)"
           test -n "$JADX_URL"
           curl -fL --retry 3 "$JADX_URL" -o jadx.zip
@@ -52,27 +54,56 @@ jobs:
 
       - name: Download Apktool
         run: |
+          set -euo pipefail
           APKTOOL_URL="$(curl -fsSL https://api.github.com/repos/iBotPeaches/Apktool/releases/latest | jq -r '.assets[] | select(.name | test("^apktool_.*\\.jar$")) | .browser_download_url' | head -n 1)"
           test -n "$APKTOOL_URL"
           curl -fL --retry 3 "$APKTOOL_URL" -o apktool.jar
 
-      - name: Decompile with JADX and Apktool
+      - name: Decompile Java with JADX (keep partial output if some classes fail)
+        continue-on-error: true
+        run: |
+          mkdir -p decompiled/jadx
+          set +e
+          "$JADX_BIN" --no-res --show-bad-code --threads-count 2 \
+            -d decompiled/jadx chatgpt-original.apk 2>&1 | tee decompiled/jadx.log
+          JADX_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "JADX exit code: $JADX_STATUS" | tee -a decompiled/DECOMPILATION_STATUS.txt
+          echo "JADX may report errors for some obfuscated or unsupported classes; partial Java output is retained." >> decompiled/DECOMPILATION_STATUS.txt
+          find decompiled/jadx -type f | head -n 20
+          test -d decompiled/jadx
+
+      - name: Decompile Smali and resources with Apktool
+        continue-on-error: true
         run: |
           mkdir -p decompiled
-          "$JADX_BIN" --show-bad-code -d decompiled/jadx chatgpt-original.apk
-          java -jar apktool.jar d -f chatgpt-original.apk -o decompiled/apktool
-          cat > decompiled/README.txt <<'EOF'
-          Decompiled output of the ChatGPT Android APK.
-          
-          jadx/: best-effort Java source and resources.
-          apktool/: Smali, AndroidManifest.xml, and decoded resources.
-          
-          This is not the original Android Studio project. Decompiled Java may be incomplete,
-          obfuscated, or non-buildable. Original comments, names, and build configuration
-          cannot reliably be recovered.
-          EOF
+          set +e
+          java -jar apktool.jar d -f chatgpt-original.apk -o decompiled/apktool 2>&1 | tee decompiled/apktool.log
+          APKTOOL_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "Apktool exit code: $APKTOOL_STATUS" | tee -a decompiled/DECOMPILATION_STATUS.txt
+          test -d decompiled/apktool || mkdir -p decompiled/apktool
 
-      - name: Upload extracted project as ZIP artifact
+      - name: Add extraction report
+        if: always()
+        run: |
+          cat > decompiled/README.txt <<'EOF'
+          ChatGPT APK decompilation output
+
+          jadx/: best-effort Java source. --no-res is used because Apktool extracts Android resources separately.
+          apktool/: Smali, AndroidManifest.xml, and decoded resources.
+          *.log: tool logs. DECOMPILATION_STATUS.txt records tool exit codes.
+
+          Important:
+          This is a decompiled representation, NOT the original Android Studio project.
+          Decompilation cannot restore original comments, variable names, source structure,
+          Gradle configuration, or proprietary source files. Some Java classes may fail
+          to decompile or may be obfuscated. A rebuilt app is not guaranteed to work.
+          EOF
+          find decompiled -maxdepth 2 -type d -print
+
+      - name: Upload extracted files as ZIP artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ChatGPT-APK-Decompiled-JADX-Apktool
