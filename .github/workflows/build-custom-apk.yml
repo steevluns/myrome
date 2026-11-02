@@ -16,7 +16,8 @@ jobs:
       - name: Install Android build tools and APK decoder
         run: |
           sudo apt-get update
-          sudo apt-get install -y apktool python3-pil
+          sudo apt-get install -y python3-pil
+          curl -fL https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar -o apktool.jar
       - name: Locate preinstalled Android build tools
         run: |
           BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
@@ -35,7 +36,7 @@ jobs:
             -o original.apk
           test "$(stat -c%s original.apk)" -gt 1000000
       - name: Decode APK
-        run: apktool d -f original.apk -o decoded
+        run: java -jar apktool.jar d -f original.apk -o decoded
       - name: Change app label and make launcher icon gray
         run: |
           python3 - <<'PY'
@@ -81,7 +82,7 @@ jobs:
           print(f"Updated app label in {changed} localized resource(s); launcher artwork converted to grayscale.")
           PY
       - name: Rebuild APK
-        run: apktool b decoded -o rebuilt-unsigned.apk
+        run: java -jar apktool.jar b decoded -o rebuilt-unsigned.apk
       - name: Align and sign APK
         run: |
           "$BT/zipalign" -f -p 4 rebuilt-unsigned.apk MyChatGpt-unsigned-aligned.apk
