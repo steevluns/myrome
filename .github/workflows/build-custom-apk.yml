@@ -1,4 +1,4 @@
-name: Build MyChatGpt cosmetic APK
+name: Build MyChatGpt parallel-install APK
 
 on:
   workflow_dispatch:
@@ -51,8 +51,8 @@ jobs:
 
           manifest = root / "AndroidManifest.xml"
           xml = manifest.read_text(encoding="utf-8")
-          xml, count = re.subn(r'(<manifest\\b[^>]*\\bpackage=")[^"]+("?)',
-                               r'\\g<1>' + new_dot + r'\\2', xml, count=1)
+          xml, count = re.subn(r'(<manifest\b[^>]*\bpackage=")[^"]+("?)',
+                               r'\g<1>' + new_dot + r'\2', xml, count=1)
           if count != 1:
               raise SystemExit("Could not change manifest package name")
           xml = xml.replace(old_dot, new_dot).replace(old_slash, new_slash)
