@@ -37,6 +37,42 @@ jobs:
           test "$(stat -c%s original.apk)" -gt 1000000
       - name: Decode APK
         run: java -jar apktool.jar d -f original.apk -o decoded
+      - name: Give MyChatGpt a separate Android package name
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path("decoded")
+          old_dot = "com.openai.chatgpt"
+          new_dot = "com.openai.mychatgpt"
+          old_slash = "com/openai/chatgpt"
+          new_slash = "com/openai/mychatgpt"
+
+          manifest = root / "AndroidManifest.xml"
+          xml = manifest.read_text(encoding="utf-8")
+          xml, count = re.subn(r'(<manifest\\b[^>]*\\bpackage=")[^"]+("?)',
+                               r'\\g<1>' + new_dot + r'\\2', xml, count=1)
+          if count != 1:
+              raise SystemExit("Could not change manifest package name")
+          xml = xml.replace(old_dot, new_dot).replace(old_slash, new_slash)
+          manifest.write_text(xml, encoding="utf-8")
+
+          changed = 0
+          for p in root.rglob("*"):
+              if not p.is_file() or p == manifest:
+                  continue
+              try:
+                  data = p.read_text(encoding="utf-8")
+              except (UnicodeDecodeError, OSError):
+                  continue
+              updated = data.replace(old_dot, new_dot).replace(old_slash, new_slash)
+              if updated != data:
+                  p.write_text(updated, encoding="utf-8")
+                  changed += 1
+
+          print(f"Package set to {new_dot}; updated package references in {changed} files.")
+          PY
       - name: Change app label and make launcher icon gray
         run: |
           python3 - <<'PY'
@@ -110,10 +146,12 @@ jobs:
             --ks debug-release.jks --ks-pass pass:android --key-pass pass:android \
             --out MyChatGpt.apk MyChatGpt-unsigned-aligned.apk
           "$BT/apksigner" verify --verbose MyChatGpt.apk
-          "$BT/aapt" dump badging MyChatGpt.apk | head -n 3
+          BADGING="$("$BT/aapt" dump badging MyChatGpt.apk | head -n 3)"
+          echo "$BADGING"
+          echo "$BADGING" | grep -F "package: name='com.openai.mychatgpt'"
       - name: Upload modified APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyChatGpt-cosmetic-build
+          name: MyChatGpt-parallel-install-build
           path: MyChatGpt.apk
           retention-days: 14
