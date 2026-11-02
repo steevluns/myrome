@@ -1,0 +1,102 @@
+name: Build MyChatGpt cosmetic APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/build-custom-apk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Android build tools and APK decoder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apktool python3-pil
+      - name: Set up Android SDK build tools
+        uses: android-actions/setup-android@v3
+      - name: Install build tools
+        run: sdkmanager "build-tools;35.0.0"
+      - name: Download original APK from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -fL \
+            -H "Accept: application/octet-stream" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/steevluns/myrome/releases/assets/701536382" \
+            -o original.apk
+          test "$(stat -c%s original.apk)" -gt 1000000
+      - name: Decode APK
+        run: apktool d -f original.apk -o decoded
+      - name: Change app label and make launcher icon gray
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          from PIL import Image
+
+          root = Path("decoded/res")
+          changed = 0
+          for p in root.glob("values*/strings.xml"):
+              s = p.read_text(encoding="utf-8")
+              ns, n = re.subn(
+                  r'(<string\\s+name="91"[^>]*>).*?(</string>)',
+                  r'\\g<1>MyChatGpt\\g<2>',
+                  s,
+                  flags=re.S
+              )
+              if n:
+                  p.write_text(ns, encoding="utf-8")
+                  changed += n
+          if not changed:
+              raise SystemExit("Could not find app label resource string name=91")
+
+          colors = root / "values" / "colors.xml"
+          s = colors.read_text(encoding="utf-8")
+          s, n = re.subn(
+              r'(<color\\s+name="ic_launcher_foreground">).*?(</color>)',
+              r'\\g<1>#ff808080\\g<2>',
+              s,
+              count=1,
+              flags=re.S
+          )
+          if not n:
+              raise SystemExit("Could not find launcher foreground color")
+          colors.write_text(s, encoding="utf-8")
+
+          for p in root.glob("mipmap-*/ic_launcher.webp"):
+              im = Image.open(p).convert("RGBA")
+              gray = im.convert("L").convert("RGBA")
+              gray.putalpha(im.getchannel("A"))
+              gray.save(p, "WEBP", lossless=True, quality=100)
+
+          print(f"Updated app label in {changed} localized resource(s); launcher artwork converted to grayscale.")
+          PY
+      - name: Rebuild APK
+        run: apktool b decoded -o rebuilt-unsigned.apk
+      - name: Align and sign APK
+        run: |
+          BT="$ANDROID_HOME/build-tools/35.0.0"
+          "$BT/zipalign" -f -p 4 rebuilt-unsigned.apk MyChatGpt-unsigned-aligned.apk
+          keytool -genkeypair -v \
+            -keystore debug-release.jks \
+            -storepass android -keypass android \
+            -alias mychatgpt -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=MyChatGpt, OU=Build, O=Local, L=NA, S=NA, C=US"
+          "$BT/apksigner" sign \
+            --ks debug-release.jks --ks-pass pass:android --key-pass pass:android \
+            --out MyChatGpt.apk MyChatGpt-unsigned-aligned.apk
+          "$BT/apksigner" verify --verbose MyChatGpt.apk
+          "$BT/aapt" dump badging MyChatGpt.apk | head -n 3
+      - name: Upload modified APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyChatGpt-cosmetic-build
+          path: MyChatGpt.apk
+          retention-days: 14
