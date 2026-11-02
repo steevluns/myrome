@@ -48,8 +48,8 @@ jobs:
           for p in root.glob("values*/strings.xml"):
               s = p.read_text(encoding="utf-8")
               ns, n = re.subn(
-                  r'(<string\\s+name="91"[^>]*>).*?(</string>)',
-                  r'\\g<1>MyChatGpt\\g<2>',
+                  r'(<string\s+name="91"[^>]*>).*?(</string>)',
+                  r'\g<1>MyChatGpt\g<2>',
                   s,
                   flags=re.S
               )
@@ -62,8 +62,8 @@ jobs:
           colors = root / "values" / "colors.xml"
           s = colors.read_text(encoding="utf-8")
           s, n = re.subn(
-              r'(<color\\s+name="ic_launcher_foreground">).*?(</color>)',
-              r'\\g<1>#ff808080\\g<2>',
+              r'(<color\s+name="ic_launcher_foreground">).*?(</color>)',
+              r'\g<1>#ff808080\g<2>',
               s,
               count=1,
               flags=re.S
