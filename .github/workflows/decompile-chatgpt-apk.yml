@@ -1,0 +1,78 @@
+name: Decompile ChatGPT APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  decompile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Download original APK from release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl --fail --location --retry 3 \
+            -H "Accept: application/octet-stream" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/steevluns/myrome/releases/assets/701536382" \
+            --output chatgpt-original.apk
+          test -s chatgpt-original.apk
+          file chatgpt-original.apk
+          unzip -t chatgpt-original.apk >/dev/null
+
+      - name: Download JADX
+        run: |
+          JADX_URL="$(curl -fsSL https://api.github.com/repos/skylot/jadx/releases/latest | jq -r '.assets[] | select(.name | test("^jadx-[0-9.]+\\.zip$")) | .browser_download_url' | head -n 1)"
+          test -n "$JADX_URL"
+          curl -fL --retry 3 "$JADX_URL" -o jadx.zip
+          mkdir jadx-dist
+          unzip -q jadx.zip -d jadx-dist
+          JADX_BIN="$(find jadx-dist -type f -path '*/bin/jadx' | head -n 1)"
+          test -n "$JADX_BIN"
+          chmod +x "$JADX_BIN"
+          echo "JADX_BIN=$JADX_BIN" >> "$GITHUB_ENV"
+
+      - name: Download Apktool
+        run: |
+          APKTOOL_URL="$(curl -fsSL https://api.github.com/repos/iBotPeaches/Apktool/releases/latest | jq -r '.assets[] | select(.name | test("^apktool_.*\\.jar$")) | .browser_download_url' | head -n 1)"
+          test -n "$APKTOOL_URL"
+          curl -fL --retry 3 "$APKTOOL_URL" -o apktool.jar
+
+      - name: Decompile with JADX and Apktool
+        run: |
+          mkdir -p decompiled
+          "$JADX_BIN" --show-bad-code -d decompiled/jadx chatgpt-original.apk
+          java -jar apktool.jar d -f chatgpt-original.apk -o decompiled/apktool
+          cat > decompiled/README.txt <<'EOF'
+          Decompiled output of the ChatGPT Android APK.
+          
+          jadx/: best-effort Java source and resources.
+          apktool/: Smali, AndroidManifest.xml, and decoded resources.
+          
+          This is not the original Android Studio project. Decompiled Java may be incomplete,
+          obfuscated, or non-buildable. Original comments, names, and build configuration
+          cannot reliably be recovered.
+          EOF
+
+      - name: Upload extracted project as ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatGPT-APK-Decompiled-JADX-Apktool
+          path: decompiled/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 14
