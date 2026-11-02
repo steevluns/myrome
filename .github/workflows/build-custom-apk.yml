@@ -17,13 +17,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y apktool python3-pil
-      - name: Set up Android SDK build tools
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools,build-tools;35.0.0'
-          accept-android-sdk-licenses: true
-      - name: Install build tools
-        run: sdkmanager "build-tools;35.0.0"
+      - name: Locate preinstalled Android build tools
+        run: |
+          BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          test -x "$BT/zipalign"
+          test -x "$BT/apksigner"
+          echo "BT=$BT" >> "$GITHUB_ENV"
       - name: Download original APK from release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -85,7 +84,6 @@ jobs:
         run: apktool b decoded -o rebuilt-unsigned.apk
       - name: Align and sign APK
         run: |
-          BT="$ANDROID_HOME/build-tools/35.0.0"
           "$BT/zipalign" -f -p 4 rebuilt-unsigned.apk MyChatGpt-unsigned-aligned.apk
           keytool -genkeypair -v \
             -keystore debug-release.jks \
