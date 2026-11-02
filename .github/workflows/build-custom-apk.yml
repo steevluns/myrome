@@ -46,19 +46,34 @@ jobs:
 
           root = Path("decoded/res")
           changed = 0
-          for p in root.glob("values*/strings.xml"):
+          for p in root.rglob("*.xml"):
+              if not any(parent.name.startswith("values") for parent in p.parents):
+                  continue
               s = p.read_text(encoding="utf-8")
               ns, n = re.subn(
-                  r'(<string\s+name="91"[^>]*>).*?(</string>)',
-                  r'\g<1>MyChatGpt\g<2>',
+                  r'(<string[^>]*\\bname="91"[^>]*>).*?(</string>)',
+                  r'\\g<1>MyChatGpt\\g<2>',
                   s,
                   flags=re.S
               )
+              if not n:
+                  ns, n = re.subn(
+                      r'(<string[^>]*>\\s*)ChatGPT(\\s*</string>)',
+                      r'\\g<1>MyChatGpt\\g<2>',
+                      s,
+                      count=1
+                  )
               if n:
                   p.write_text(ns, encoding="utf-8")
                   changed += n
           if not changed:
-              raise SystemExit("Could not find app label resource string name=91")
+              print("Resource candidates:")
+              for p in root.rglob("*.xml"):
+                  if "values" in str(p):
+                      for line in p.read_text(encoding="utf-8", errors="ignore").splitlines():
+                          if "ChatGPT" in line or 'name="91"' in line:
+                              print(p, line[:300])
+              raise SystemExit("Could not locate the launcher app label string")
 
           colors = root / "values" / "colors.xml"
           s = colors.read_text(encoding="utf-8")
