@@ -51,15 +51,15 @@ jobs:
                   continue
               s = p.read_text(encoding="utf-8")
               ns, n = re.subn(
-                  r'(<string[^>]*\\bname="91"[^>]*>).*?(</string>)',
-                  r'\\g<1>MyChatGpt\\g<2>',
+                  r'(<string[^>]*\bname="91"[^>]*>).*?(</string>)',
+                  r'\g<1>MyChatGpt\g<2>',
                   s,
                   flags=re.S
               )
               if not n:
                   ns, n = re.subn(
-                      r'(<string[^>]*>\\s*)ChatGPT(\\s*</string>)',
-                      r'\\g<1>MyChatGpt\\g<2>',
+                      r'(<string[^>]*>\s*)ChatGPT(\s*</string>)',
+                      r'\g<1>MyChatGpt\g<2>',
                       s,
                       count=1
                   )
