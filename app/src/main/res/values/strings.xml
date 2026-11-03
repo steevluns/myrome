@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Unscreen</string>
+    <string name="status_on">الخدمة تعمل</string>
+    <string name="status_off">الخدمة متوقفة</string>
+    <string name="btn_start">تشغيل</string>
+    <string name="btn_stop">إيقاف</string>
+    <string name="boot">التشغيل التلقائي عند إقلاع الجهاز</string>
+    <string name="root_checking">جارٍ فحص صلاحية الروت…</string>
+    <string name="root_ok">صلاحية الروت: متاحة ✓</string>
+    <string name="root_no">صلاحية الروت: غير متاحة (سيُستخدم بديل بدون روت)</string>
+    <string name="hint">أغلق الشاشة، ثم اقلب الجهاز بحيث تصير الشاشة للأسفل وظهره للأعلى لتُضاء الشاشة.</string>
+    <string name="notif_title">Unscreen يعمل</string>
+    <string name="notif_text">اقلب الجهاز لإيقاظ الشاشة</string>
+    <string name="channel_name">خدمة Unscreen</string>
+</resources>
