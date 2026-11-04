@@ -15,11 +15,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -38,7 +36,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: DownLS10-debug-apk
-          path: build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
 
