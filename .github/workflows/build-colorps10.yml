@@ -1,0 +1,30 @@
+name: Build Colorps10 Windows
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '**.cs'
+      - '**.csproj'
+      - '.github/workflows/build-colorps10.yml'
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Windows application
+        run: msbuild Colorps10.csproj /m /p:Configuration=Release /p:Platform=AnyCPU
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Colorps10-Windows
+          path: |
+            bin/Release/Colorps10.exe
+          if-no-files-found: error
